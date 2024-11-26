@@ -1,0 +1,3 @@
+#!/bin/bash
+
+./SomeSandwich.Hotel.Cli/bin/Release/net8.0/SomeSandwich.Hotel.Cli $1 $2
