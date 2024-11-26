@@ -38,6 +38,6 @@ public class HotelImageDetailComparer : IEqualityComparer<HotelImageDetail>
     /// <inheritdoc />
     public int GetHashCode(HotelImageDetail obj)
     {
-        return obj.Link.GetHashCode();
+        return obj.Link!.GetHashCode();
     }
 }

@@ -36,7 +36,6 @@ public class HotelMergerService : IHotelMergerService
     /// <inheritdoc />
     public async Task<IReadOnlyCollection<Models.Hotel>> SearchMergeHotelAsync(IEnumerable<string> hotelIds, IEnumerable<int> destinationIds)
     {
-
         var acmeTask = hotelClient.SearchHotelFromAcmeAsync();
         var patagoniaTask = hotelClient.SearchHotelFromPatagoniaAsync();
         var paperFliesTask = hotelClient.SearchHotelFromPaperFliesAsync();
@@ -52,7 +51,40 @@ public class HotelMergerService : IHotelMergerService
         MapPatagoniaHotelToHotel(hotels, patagoniaDtos);
         MapAcmeHotelToHotel(hotels, acmeHotelDtos);
 
-        return hotels.Values.ToList();
+        if (!hotelIds.Any())
+        {
+            return hotels
+                .Where(e => destinationIds.Contains(e.Key.DestinationId))
+                .Select(e => e.Value)
+                .ToList();
+        }
+
+        if (!destinationIds.Any())
+        {
+            return hotels
+                .Where(e => hotelIds.Contains(e.Key.Id))
+                .Select(e => e.Value)
+                .ToList();
+        }
+
+        var filterHotels = GenerateFilterHotels(hotelIds, destinationIds);
+
+        return hotels
+            .Where(e => filterHotels.Contains(e.Key))
+            .Select(e => e.Value)
+            .ToList();
+    }
+
+    private static List<(string HotelId, int DestinationId)> GenerateFilterHotels(IEnumerable<string> hotelIds, IEnumerable<int> destinationIds)
+    {
+        var filterHotels = new List<(string HotelId, int DestinationId)>();
+
+        foreach (var hotelId in hotelIds)
+        {
+            filterHotels.AddRange(destinationIds.Select(destinationId => (hotelId, destinationId)));
+        }
+
+        return filterHotels;
     }
 
     private static void MapPaperFliesToHotel(IDictionary<(string Id, int DestinationId), Models.Hotel> hotels, IEnumerable<HotelPaperFliesDto> paperFliesDtos)
@@ -213,7 +245,7 @@ public class HotelMergerService : IHotelMergerService
                 hotel.Location.Country = string.IsNullOrEmpty(hotel.Location.Country) && !string.IsNullOrEmpty(acmeHotel.Country) ? acmeHotel.Country : hotel.Location.Country;
                 hotel.Description = string.IsNullOrEmpty(hotel.Description) && !string.IsNullOrEmpty(acmeHotel.Description) ? acmeHotel.Description : hotel.Description;
                 hotel.Amenities.General = hotel.Amenities.General
-                    .Union(acmeHotel?.Facilities?.Select(f => f.BeautifyAndToLower()) ?? [])
+                    .Union(acmeHotel?.Facilities?.Select(f => f.BeatifyAndSplitAndToLower()) ?? [])
                     .ToList();
 
                 hotels[(acmeHotel!.Id, acmeHotel.DestinationId)] = hotel;
